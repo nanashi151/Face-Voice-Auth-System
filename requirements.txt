@@ -1,0 +1,14 @@
+click==8.3.1
+cmake==4.2.0
+colorama==0.4.6
+dlib @ file:///D:/Users/PC/Desktop/dlib-19.24.1-cp311-cp311-win_amd64.whl#sha256=6f1a5ee167975d7952b28e0ce4495f1d9a77644761cf5720fb66d7c6188ae496
+face-recognition==1.3.0
+face_recognition_models==0.3.0
+numpy==2.2.6
+opencv-contrib-python==4.12.0.88
+pillow==12.0.0
+PyAudio==0.2.14
+pyserial==3.5
+scipy==1.16.3
+SpeechRecognition==3.14.4
+typing_extensions==4.15.0
