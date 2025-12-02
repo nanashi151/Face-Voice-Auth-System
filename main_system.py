@@ -15,16 +15,16 @@ from arduino_manager import ArduinoDoorLock
 # ==========================================
 USE_SIMULATION = True
 CHECK_LIVENESS = True
-USE_VOICE_BIOMETRICS = False  # Set True if you want to store voice samples
+USE_VOICE_BIOMETRICS = False
 
 KNOWN_FACES_DIR = "known_faces"
-VOICE_SAMPLES_DIR = "voice_samples"  # For voice biometrics (optional)
+VOICE_SAMPLES_DIR = "voice_samples"
 LOG_FILE = "access_log.csv"
 SIMULATION_IMAGE = "test_feed.jpg"
 
 # Liveness Detection Settings
-LIVENESS_TIMEOUT = 10  # seconds
-EAR_THRESHOLD = 0.25  # Eye Aspect Ratio threshold
+LIVENESS_TIMEOUT = 10
+EAR_THRESHOLD = 0.25
 
 # Voice Challenge Words Bank
 WORD_BANK = [
@@ -53,21 +53,18 @@ class VoiceAuthenticator:
         Returns: (success, spoken_text, match_percentage)
         """
         if USE_SIMULATION:
-            # Simulation mode
             print(f"\n[VOICE] Challenge Words: {' '.join(challenge_words).upper()}")
             print(f"[VOICE] Type these words:")
             spoken = input(">> ").lower().strip()
             
-            # Check match
             spoken_words = spoken.split()
             matches = sum(1 for word in challenge_words if word in spoken_words)
             match_percentage = (matches / len(challenge_words)) * 100
             
-            success = match_percentage >= 66.67  # At least 2 out of 3
+            success = match_percentage >= 66.67
             return success, spoken, match_percentage
         
         else:
-            # Live mode - use microphone
             with sr.Microphone() as source:
                 print(f"\n[VOICE] Say these words: {' '.join(challenge_words).upper()}")
                 print("[VOICE] Listening...")
@@ -79,12 +76,11 @@ class VoiceAuthenticator:
                     
                     print(f"[VOICE] You said: '{spoken_text}'")
                     
-                    # Check how many words match
                     spoken_words = spoken_text.split()
                     matches = sum(1 for word in challenge_words if word in spoken_words)
                     match_percentage = (matches / len(challenge_words)) * 100
                     
-                    success = match_percentage >= 66.67  # At least 2 out of 3
+                    success = match_percentage >= 66.67
                     return success, spoken_text, match_percentage
                     
                 except sr.WaitTimeoutError:
@@ -110,10 +106,8 @@ class LivenessDetector:
             cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
         )
         
-        # Available liveness tests
         self.available_tests = ['blink', 'look_left', 'look_right']
         
-        # Test tracking
         self.blink_counter = 0
         self.frames_below_threshold = 0
     
@@ -161,10 +155,7 @@ class LivenessDetector:
         return False, self.blink_counter
     
     def check_head_turn(self, frame, face_location, direction):
-        """
-        Check if head is turned left or right.
-        Returns: (turned, confidence)
-        """
+        """Check if head is turned left or right."""
         x, y, w, h = face_location
         face_roi = frame[y:y+h, x:x+w]
         
@@ -173,28 +164,16 @@ class LivenessDetector:
         if len(eyes) < 2:
             return False, 0
         
-        # Sort eyes by x-coordinate
         eyes_sorted = sorted(eyes, key=lambda e: e[0])
         left_eye, right_eye = eyes_sorted[0], eyes_sorted[1]
         
-        # Calculate horizontal distance between eyes
         eye_distance = right_eye[0] - (left_eye[0] + left_eye[2])
-        
-        # Get face width
         face_width = w
         
-        # Calculate ratio (smaller ratio = head turned)
-        ratio = eye_distance / face_width if face_width > 0 else 0
-        
-        # Thresholds for head turn detection
         if direction == 'left':
-            # When looking left, right eye becomes less visible
-            # Right eye should be closer to right edge
             turned = (right_eye[0] + right_eye[2]) > (face_width * 0.7)
             confidence = 0.8 if turned else 0.3
         elif direction == 'right':
-            # When looking right, left eye becomes less visible
-            # Left eye should be closer to left edge
             turned = left_eye[0] < (face_width * 0.3)
             confidence = 0.8 if turned else 0.3
         else:
@@ -210,13 +189,13 @@ class LivenessDetector:
 
 class SmartAccessSystem:
     def __init__(self):
-        print("--- SMART ACCESS SYSTEM v2.0 ---")
-        print("    Enhanced Security Features")
-        print("="*40)
+        print("\n" + "="*60)
+        print("  SMART CLASSROOM ACCESS SYSTEM v2.0")
+        print("  Enhanced Security with Random Challenges")
+        print("="*60)
         
         self.arduino = ArduinoDoorLock()
         
-        # Face detection
         cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
         self.face_cascade = cv2.CascadeClassifier(cascade_path)
         
@@ -224,7 +203,6 @@ class SmartAccessSystem:
             print("[ERROR] Could not load face cascade!")
             exit(1)
         
-        # Face recognizer
         try:
             self.face_recognizer = cv2.face.LBPHFaceRecognizer_create()
             print("[INIT] ✓ Face Recognition Module")
@@ -232,7 +210,6 @@ class SmartAccessSystem:
             print("[ERROR] OpenCV face module not available!")
             exit(1)
 
-        # Enhanced modules
         self.liveness_detector = LivenessDetector(ear_threshold=EAR_THRESHOLD)
         self.voice_authenticator = VoiceAuthenticator()
         
@@ -247,7 +224,7 @@ class SmartAccessSystem:
         else:
             print("[INIT] ✓ Simulation Mode Active")
         
-        print("="*40 + "\n")
+        print("="*60 + "\n")
 
     def detect_faces(self, image):
         """Detect faces using Haar Cascade."""
@@ -320,16 +297,186 @@ class SmartAccessSystem:
         except Exception as e:
             print(f"[ERROR] Training failed: {e}")
 
+    def show_home_screen(self):
+        """Display main menu and get user choice."""
+        print("\n" + "="*60)
+        print("  MAIN MENU")
+        print("="*60)
+        print("\n  1. Start Authentication")
+        print("  2. View Registered Users")
+        print("  3. View Recent Logs")
+        print("  4. Test Arduino Connection")
+        print("  5. Exit System")
+        print("\n" + "="*60)
+        
+        while True:
+            choice = input("\nSelect option (1-5): ").strip()
+            if choice in ['1', '2', '3', '4', '5']:
+                return choice
+            print("[ERROR] Invalid choice. Please enter 1-5.")
+
+    def view_users(self):
+        """Display registered users."""
+        print("\n" + "="*60)
+        print("  REGISTERED USERS")
+        print("="*60)
+        if self.known_face_names:
+            for idx, name in self.known_face_names.items():
+                print(f"  {idx + 1}. {name}")
+            print(f"\nTotal: {len(self.known_face_names)} users")
+        else:
+            print("\n  No users registered yet.")
+        print("="*60)
+        input("\nPress ENTER to return to menu...")
+
+    def view_logs(self):
+        """Display recent access logs."""
+        print("\n" + "="*60)
+        print("  RECENT ACCESS LOGS (Last 10)")
+        print("="*60)
+        
+        if os.path.exists(LOG_FILE):
+            try:
+                with open(LOG_FILE, 'r') as f:
+                    logs = f.readlines()
+                
+                if len(logs) > 1:
+                    for log in logs[-10:]:
+                        print(f"  {log.strip()}")
+                else:
+                    print("\n  No access events logged yet.")
+            except Exception as e:
+                print(f"  Error reading logs: {e}")
+        else:
+            print("\n  No log file found.")
+        
+        print("="*60)
+        input("\nPress ENTER to return to menu...")
+
+    def test_arduino(self):
+        """Test Arduino connection."""
+        print("\n" + "="*60)
+        print("  ARDUINO CONNECTION TEST")
+        print("="*60)
+        
+        status = self.arduino.get_status()
+        print(f"\n  Connected: {status['connected']}")
+        print(f"  Port: {status['port']}")
+        print(f"  Simulation: {status['simulation']}")
+        
+        if status['connected']:
+            print("\n  Sending test command...")
+            self.arduino.connection.write(b'T')
+            print("  ✓ LED should blink 3 times")
+        else:
+            print("\n  ✓ Running in simulation mode")
+        
+        print("="*60)
+        input("\nPress ENTER to return to menu...")
+
+    def run_authentication_session(self):
+        """Run a single authentication attempt."""
+        print("\n" + "="*60)
+        print("  AUTHENTICATION SESSION STARTED")
+        print("="*60)
+        
+        ret, frame = self.get_input_feed()
+        if not ret or frame is None:
+            print("[ERROR] Could not get video feed")
+            input("\nPress ENTER to continue...")
+            return
+
+        display_frame = frame.copy()
+        detected_faces, gray = self.detect_faces(frame)
+
+        if len(detected_faces) == 0:
+            print("\n[RESULT] ✗ No face detected")
+            cv2.putText(display_frame, "NO FACE DETECTED", (50, 50),
+                       cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            cv2.imshow('Authentication Result', display_frame)
+            cv2.waitKey(3000)  # Show for 3 seconds
+            cv2.destroyAllWindows()
+            input("\nPress ENTER to return to menu...")
+            return
+
+        # Process first detected face
+        (x, y, w, h) = detected_faces[0]
+        face_roi = gray[y:y+h, x:x+w]
+        face_roi = cv2.resize(face_roi, (200, 200))
+        
+        label, confidence = self.face_recognizer.predict(face_roi)
+        
+        if confidence < 70:
+            name = self.known_face_names.get(label, "Unknown")
+            match_confidence = (100 - confidence) / 100
+        else:
+            name = "Unknown"
+            match_confidence = 0
+        
+        # Draw result on frame
+        color = (0, 255, 0) if name != "Unknown" else (0, 0, 255)
+        cv2.rectangle(display_frame, (x, y), (x+w, y+h), color, 2)
+        
+        label_text = f"{name}"
+        if name != "Unknown":
+            label_text += f" ({match_confidence:.0%})"
+        
+        cv2.rectangle(display_frame, (x, y+h-35), (x+w, y+h), color, cv2.FILLED)
+        cv2.putText(display_frame, label_text, (x+6, y+h-6), 
+                   cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 255, 255), 1)
+
+        # Show face recognition result
+        cv2.imshow('Face Recognition', display_frame)
+        cv2.waitKey(1500)  # Show for 1.5 seconds
+        cv2.destroyAllWindows()  # AUTO-CLOSE
+
+        if name == "Unknown":
+            print(f"\n[RESULT] ✗ Face not recognized")
+            self._log_access("Unknown", "DENIED - Unknown face", 0)
+            input("\nPress ENTER to return to menu...")
+            return
+
+        print(f"\n[FACE] ✓ Identified: {name} ({match_confidence:.0%})")
+        
+        # LIVENESS TEST
+        if CHECK_LIVENESS:
+            liveness_passed, test_type = self.run_liveness_test(frame, (x, y, w, h))
+            
+            if not liveness_passed:
+                print(f"[SECURITY] ✗ Liveness failed ({test_type})")
+                print(f"[RESULT] ✗✗ ACCESS DENIED - Possible spoofing")
+                self._log_access(name, "DENIED - Liveness failed", match_confidence)
+                input("\nPress ENTER to return to menu...")
+                return
+            else:
+                print(f"[SECURITY] ✓ Liveness verified ({test_type})")
+        
+        # VOICE CHALLENGE
+        challenge_words = self.voice_authenticator.generate_challenge(3)
+        success, spoken, match_pct = self.voice_authenticator.verify_challenge(challenge_words)
+        
+        if success:
+            print(f"[VOICE] ✓ Challenge passed ({match_pct:.0f}% match)")
+            print(f"\n[RESULT] ✓✓✓ ACCESS GRANTED to {name}")
+            print("="*60)
+            
+            self.arduino.unlock()
+            self._log_access(name, "GRANTED", match_confidence)
+            
+            print("\n[SYSTEM] Authentication complete")
+            input("\nPress ENTER to return to menu...")
+        else:
+            print(f"[VOICE] ✗ Challenge failed ({match_pct:.0f}% match)")
+            print(f"\n[RESULT] ✗✗ ACCESS DENIED")
+            print("="*60)
+            self._log_access(name, f"DENIED - Voice challenge failed", match_confidence)
+            input("\nPress ENTER to return to menu...")
+
     def run_liveness_test(self, frame, face_location):
-        """
-        Run random liveness test.
-        Returns: (success, test_type)
-        """
-        # Select random test
+        """Run random liveness test."""
         test_type = self.liveness_detector.generate_random_test()
         
         if USE_SIMULATION:
-            # Simulation mode
             print("\n" + "="*50)
             print(f"[LIVENESS] Test Type: {test_type.upper().replace('_', ' ')}")
             print("="*50)
@@ -344,17 +491,18 @@ class SmartAccessSystem:
             response = input("Simulate successful test? (y/n): ").lower()
             return response == 'y', test_type
         
-        # Live mode
         print("\n" + "="*50)
         
         if test_type == 'blink':
-            return self._test_blink(), test_type
+            result = self._test_blink()
         elif test_type == 'look_left':
-            return self._test_head_turn('left'), test_type
+            result = self._test_head_turn('left')
         elif test_type == 'look_right':
-            return self._test_head_turn('right'), test_type
+            result = self._test_head_turn('right')
+        else:
+            result = False
         
-        return False, test_type
+        return result, test_type
     
     def _test_blink(self):
         """Test: Blink twice."""
@@ -401,7 +549,6 @@ class SmartAccessSystem:
                         cv2.destroyAllWindows()
                         return True
                 
-                # Draw feedback
                 cv2.rectangle(test_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
                 cv2.putText(test_frame, f"Blink {total_blinks}/{required_blinks}", 
                            (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
@@ -428,7 +575,7 @@ class SmartAccessSystem:
         
         start_time = time.time()
         success_frames = 0
-        required_frames = 10  # Must maintain turn for 10 frames
+        required_frames = 10
         
         cap = cv2.VideoCapture(0)
         
@@ -466,11 +613,9 @@ class SmartAccessSystem:
                 else:
                     success_frames = 0
                 
-                # Draw feedback
                 color = (0, 255, 0) if success_frames > 0 else (0, 165, 255)
                 cv2.rectangle(test_frame, (x, y), (x+w, y+h), color, 2)
                 
-                # Draw arrow
                 center_x = x + w // 2
                 center_y = y + h // 2
                 if direction == 'left':
@@ -502,8 +647,6 @@ class SmartAccessSystem:
                 frame = cv2.imread(SIMULATION_IMAGE)
                 if frame is None: 
                     return False, None
-                cv2.putText(frame, "SIMULATION MODE", (10, 30), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                 return True, frame
             else:
                 print(f"[ERROR] Not found: {SIMULATION_IMAGE}")
@@ -512,109 +655,32 @@ class SmartAccessSystem:
             return self.video_capture.read()
 
     def run(self):
-        print("\n[SYSTEM] Starting Enhanced Access System...")
-        if USE_SIMULATION:
-            print("[CONTROLS] 'c'=close & continue | 'q'=quit\n")
-        else:
-            print("[CONTROLS] 'q'=quit\n")
-        
+        """Main application loop with menu."""
         if len(self.known_face_names) == 0:
-            print("[ERROR] No users registered!")
+            print("\n[ERROR] No users registered!")
+            print("[INFO] Please run admin_panel.py to add users first.")
+            input("\nPress ENTER to exit...")
             return
         
-        print(f"[INFO] Registered: {', '.join(self.known_face_names.values())}\n")
-        
         while True:
-            ret, frame = self.get_input_feed()
-            if not ret or frame is None: 
-                break
-
-            display_frame = frame.copy()
-            detected_faces, gray = self.detect_faces(frame)
-
-            for (x, y, w, h) in detected_faces:
-                face_roi = gray[y:y+h, x:x+w]
-                face_roi = cv2.resize(face_roi, (200, 200))
-                
-                label, confidence = self.face_recognizer.predict(face_roi)
-                
-                if confidence < 70:
-                    name = self.known_face_names.get(label, "Unknown")
-                    match_confidence = (100 - confidence) / 100
-                else:
-                    name = "Unknown"
-                    match_confidence = 0
-                
-                color = (0, 255, 0) if name != "Unknown" else (0, 0, 255)
-                cv2.rectangle(display_frame, (x, y), (x+w, y+h), color, 2)
-                
-                label_text = f"{name}"
-                if name != "Unknown":
-                    label_text += f" ({match_confidence:.0%})"
-                
-                cv2.rectangle(display_frame, (x, y+h-35), (x+w, y+h), color, cv2.FILLED)
-                cv2.putText(display_frame, label_text, (x+6, y+h-6), 
-                           cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 255, 255), 1)
-
-                if name != "Unknown":
-                    print(f"\n{'='*50}")
-                    print(f"[FACE] ✓ Identified: {name} ({match_confidence:.0%})")
-                    print(f"{'='*50}")
-                    
-                    cv2.imshow('Smart Access System v2.0', display_frame)
-                    cv2.waitKey(1)
-                    
-                    # LIVENESS TEST (Random)
-                    if CHECK_LIVENESS:
-                        liveness_passed, test_type = self.run_liveness_test(frame, (x, y, w, h))
-                        
-                        if not liveness_passed:
-                            print(f"[SECURITY] ✗ Liveness failed ({test_type})")
-                            print(f"[ACCESS] ✗✗ DENIED - Possible spoofing")
-                            self._log_access(name, "DENIED - Liveness failed", match_confidence)
-                            print(f"{'='*50}\n")
-                            continue
-                        else:
-                            print(f"[SECURITY] ✓ Liveness verified ({test_type})")
-                    
-                    # VOICE CHALLENGE (Random Words)
-                    challenge_words = self.voice_authenticator.generate_challenge(3)
-                    success, spoken, match_pct = self.voice_authenticator.verify_challenge(challenge_words)
-                    
-                    if success:
-                        print(f"[VOICE] ✓ Challenge passed ({match_pct:.0f}% match)")
-                        print(f"[ACCESS] ✓✓✓ GRANTED to {name}")
-                        print(f"{'='*50}\n")
-                        
-                        self.arduino.unlock()
-                        self._log_access(name, "GRANTED", match_confidence)
-                        time.sleep(2)
-                    else:
-                        print(f"[VOICE] ✗ Challenge failed ({match_pct:.0f}% match)")
-                        print(f"[ACCESS] ✗✗ DENIED")
-                        self._log_access(name, f"DENIED - Voice challenge failed", match_confidence)
-                        print(f"{'='*50}\n")
-
-            cv2.imshow('Smart Access System v2.0', display_frame)
+            choice = self.show_home_screen()
             
-            if USE_SIMULATION:
-                print("\n[CONTROL] 'c'=close window | 'q'=quit")
-                key = cv2.waitKey(0) & 0xFF
-                if key == ord('q'):
-                    break
-                elif key == ord('c'):
-                    cv2.destroyAllWindows()
-                    response = input("Run another simulation? (y/n): ").lower()
-                    if response != 'y':
-                        break
-            else:
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-
+            if choice == '1':
+                self.run_authentication_session()
+            elif choice == '2':
+                self.view_users()
+            elif choice == '3':
+                self.view_logs()
+            elif choice == '4':
+                self.test_arduino()
+            elif choice == '5':
+                print("\n[SYSTEM] Shutting down...")
+                break
+        
         if not USE_SIMULATION and hasattr(self, 'video_capture'):
             self.video_capture.release()
         cv2.destroyAllWindows()
-        print("\n[SYSTEM] Stopped")
+        print("\n[SYSTEM] Goodbye!\n")
     
     def _log_access(self, name, status, confidence):
         """Log access attempt."""
@@ -637,8 +703,8 @@ if __name__ == "__main__":
         system = SmartAccessSystem()
         system.run()
     except KeyboardInterrupt:
-        print("\n[SYSTEM] Interrupted")
+        print("\n\n[SYSTEM] Interrupted by user")
     except Exception as e:
-        print(f"\n[ERROR] {str(e)}")
+        print(f"\n[FATAL ERROR] {str(e)}")
         import traceback
         traceback.print_exc()
